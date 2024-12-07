@@ -4,18 +4,16 @@ import React, { useState, ChangeEvent, useEffect } from "react";
 import {
   IconCopy,
   IconStar,
-  IconThumbDown,
-  IconThumbUp,
   IconVolume,
+  IconArrowsExchange,
+  IconBrandGithub,
 } from "@tabler/icons-react";
 import SpeechRecognitionComponent from "@/components/SpeechRecognition/SpeechRecognition";
 import TextArea from "@/components/Inputs/TextArea";
 import FileUpload from "@/components/Inputs/FileUpload";
-import LinkPaste from "@/components/Inputs/LinkPaste";
 import LanguageSelector from "@/components/Inputs/LanguageSelector";
 import useTranslate from "@/hooks/useTranslate";
 import { rtfToText } from "@/utils/rtfToText";
-
 import SvgDecorations from "@/components/SvgDecorations";
 import CategoryLinks from "@/components/categoryLinks";
 
@@ -30,21 +28,38 @@ const Home: React.FC = () => {
     "French",
     "German",
     "Hindi",
+    "Chinese",
+    "Japanese",
+    "Korean",
+    "Arabic",
+    "Russian"
   ]);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("French");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("English");
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  
   const targetText = useTranslate(debouncedText, selectedLanguage);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedText(sourceText);
-    }, 1000); 
-    
-    return () => {
-      clearTimeout(handler);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [sourceText]);
+
+  // Initialize voices
+  useEffect(() => {
+    const loadVoices = () => {
+      setVoices(window.speechSynthesis.getVoices());
     };
-  }, [sourceText]); 
+
+    loadVoices();
+
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,29 +74,10 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleLinkPaste = async (e: ChangeEvent<HTMLInputElement>) => {
-    const link = e.target.value;
-    try {
-      const response = await fetch(link);
-      const data = await response.text();
-      setSourceText(data);
-    } catch (error) {
-      console.error("Error fetching link content:", error);
-    }
-  };
-
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(targetText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleLike = () => {
-  
-  };
-
-  const handleDislike = () => {
-  
   };
 
   const handleFavorite = () => {
@@ -93,100 +89,143 @@ const Home: React.FC = () => {
     }
   };
 
-  const handleAudioPlayback = (text: string) => {
+  const handleAudioPlayback = (text: string, language?: string) => {
     const utterance = new SpeechSynthesisUtterance(text);
+    
+   
+    const languageMap: { [key: string]: string } = {
+      'English': 'en',
+      'Spanish': 'es',
+      'French': 'fr',
+      'German': 'de',
+      'Hindi': 'hi',
+      'Chinese': 'zh',
+      'Japanese': 'ja',
+      'Korean': 'ko',
+      'Arabic': 'ar',
+      'Russian': 'ru'
+    };
+
+    if (language && languageMap[language]) {
+      const voice = voices.find(v => v.lang.startsWith(languageMap[language]));
+      if (voice) {
+        utterance.voice = voice;
+      }
+      utterance.lang = languageMap[language];
+    }
+
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   };
 
   return (
-    <div className="w-full bg-black bg-dot-white/[0.2] bg-dot-black/[0.2] relative flex items-center justify-center">
-      <div className="absolute pointer-events-none inset-0 flex items-center justify-center bg-black [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]"></div>
+    <main className="min-h-screen bg-gradient-to-b from-neutral-950 to-neutral-900 text-white relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-green-500/20 via-neutral-900/0 to-purple-500/20"></div>
+      <SvgDecorations />
 
-      <div className="relative overflow-hidden h-screen">
-        <div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-24">
-          <div className="text-center">
-            <h1 className="text-4xl sm:text-6xl font-bold text-neutral-200">
-              <span className="text-green-500">Translytic</span>
-            </h1>
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <header className="text-center mb-12">
+          <h1 className="text-4xl sm:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-green-600 inline-block">
+            Translytic
+          </h1>
+          <p className="mt-4 text-neutral-400 max-w-2xl mx-auto">
+            Break language barriers effortlessly with AI-powered precision translation
+          </p>
+        </header>
 
-            <p className="mt-3 text-neutral-400">
-              Break language barriers effortlessly with AI-powered precision
-              translation
-            </p>
+        <div className="grid gap-6 lg:grid-cols-2 max-w-6xl mx-auto">
+          <div className="bg-neutral-800/50 backdrop-blur-xl rounded-xl p-4 border border-neutral-700/50 shadow-xl">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-sm font-medium text-neutral-300">Source Text</h2>
+              <div className="flex items-center space-x-2">
+                <SpeechRecognitionComponent setSourceText={setSourceText} />
+                <FileUpload handleFileUpload={handleFileUpload} />
+              </div>
+            </div>
+            <TextArea
+              id="source-language"
+              value={sourceText}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setSourceText(e.target.value)}
+              placeholder="Enter text to translate..."
+            />
+            <div className="flex justify-between items-center mt-2">
+              <IconVolume
+                size={20}
+                className="text-neutral-400 hover:text-green-500 transition-colors cursor-pointer"
+                onClick={() => handleAudioPlayback(sourceText)}
+              />
+              <span className="text-xs text-neutral-400">
+                {sourceText.length} / 2000
+              </span>
+            </div>
+          </div>
 
-            <div className="mt-7 sm:mt-12 mx-auto max-w-3xl relative">
-              <div className="grid gap-4 md:grid-cols-2 grid-cols-1">
-                <div className="relative z-10 flex flex-col space-x-3 p-3 border rounded-lg shadow-lg bg-neutral-900 border-neutral-700 shadow-gray-900/20">
-                  <TextArea
-                    id="source-language"
-                    value={sourceText}
-                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                      setSourceText(e.target.value)
-                    }
-                    placeholder="Source Language"
+          <div className="bg-neutral-800/50 backdrop-blur-xl rounded-xl p-4 border border-neutral-700/50 shadow-xl">
+            <div className="flex justify-between items-center mb-3">
+              <LanguageSelector
+                selectedLanguage={selectedLanguage}
+                setSelectedLanguage={setSelectedLanguage}
+                languages={languages}
+              />
+              <div className="flex items-center space-x-3">
+                <IconStar
+                  size={20}
+                  className={`cursor-pointer transition-colors ${
+                    favorite ? "text-yellow-400" : "text-neutral-400 hover:text-yellow-400"
+                  }`}
+                  onClick={handleFavorite}
+                />
+                <div className="relative">
+                  <IconCopy
+                    size={20}
+                    className="text-neutral-400 hover:text-green-500 transition-colors cursor-pointer"
+                    onClick={handleCopyToClipboard}
                   />
-                  <div className="flex flex-row justify-between w-full">
-                    <span className="cursor-pointer flex space-x-2 flex-row">
-                      <SpeechRecognitionComponent
-                        setSourceText={setSourceText}
-                      />
-                      <IconVolume
-                        size={22}
-                        onClick={() => handleAudioPlayback(sourceText)}
-                      />
-                      <FileUpload handleFileUpload={handleFileUpload} />
-                      <LinkPaste handleLinkPaste={handleLinkPaste} />
+                  {copied && (
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-green-500 bg-neutral-900 px-2 py-1 rounded">
+                      Copied!
                     </span>
-                    <span className="text-sm pr-4">
-                      {sourceText.length} / 2000
-                    </span>
-                  </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col space-x-3 p-3 border rounded-lg shadow-lg bg-neutral-900 border-neutral-700 shadow-gray-900/20">
-                  <TextArea
-                    id="target-language"
-                    value={targetText}
-                    onChange={() => {}}
-                    placeholder="Target Language"
-                  />
-                  <div className="flex flex-row justify-between w-full">
-                    <span className="cursor-pointer flex items-center space-x-2 flex-row">
-                      <LanguageSelector
-                        selectedLanguage={selectedLanguage}
-                        setSelectedLanguage={setSelectedLanguage}
-                        languages={languages}
-                      />
-                      <IconVolume
-                        size={22}
-                        onClick={() => handleAudioPlayback(targetText)}
-                      />
-                    </span>
-                    <div className="flex flex-row items-center space-x-2 pr-4 cursor-pointer">
-                      <IconCopy size={22} onClick={handleCopyToClipboard} />
-                      {copied && (
-                        <span className="text-xs text-green-500">Copied!</span>
-                      )}
-                      <IconThumbUp size={22} onClick={handleLike} />
-                      <IconThumbDown size={22} onClick={handleDislike} />
-                      <IconStar
-                        size={22}
-                        onClick={handleFavorite}
-                        className={favorite ? "text-yellow-500" : ""}
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
-
-              <SvgDecorations />
             </div>
-
-            <CategoryLinks />
+            <TextArea
+              id="target-language"
+              value={targetText}
+              onChange={() => {}}
+              placeholder="Translation will appear here..."
+            />
+            <div className="flex justify-between items-center mt-2">
+              <IconVolume
+                size={20}
+                className="text-neutral-400 hover:text-green-500 transition-colors cursor-pointer"
+                onClick={() => handleAudioPlayback(targetText, selectedLanguage)}
+              />
+              <span className="text-xs text-neutral-400">
+                {targetText.length} characters
+              </span>
+            </div>
           </div>
         </div>
+
+        <CategoryLinks />
+
+        <footer className="mt-16 text-center text-sm text-neutral-500">
+          <a
+            href="https://github.com/yourusername/translytic"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center space-x-2 hover:text-green-500 transition-colors"
+          >
+            <IconBrandGithub size={20} />
+            <span>View on GitHub</span>
+          </a>
+        </footer>
       </div>
-    </div>
+    </main>
   );
 };
 

@@ -41,9 +41,7 @@ const CategoryLink = ({
 
 const CategoryLinks: React.FC = () => (
   <div>
-    <p className="mt-3 pt-16 text-red-400"> 
-    Exciting New Features on the Horizon – Stay Tuned!
-    </p>
+    
     <div className="mt-2 sm:mt-4 flex flex-wrap justify-center"> 
       {categories.map(({ icon, label }) => (
         <CategoryLink key={label} icon={icon} label={label} />
